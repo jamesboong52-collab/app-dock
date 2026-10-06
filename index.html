@@ -1963,9 +1963,9 @@ const ATTRS = [
   {k:'ORD', name:'Order',      color:'#D99A1E', keys:['bed','room'],             desc:'Bed made, clean room'},
 ];
 const xpFor = l => 50*(l-1)*l;
-/* Attributes: 5 levels max. XP needed per habit in the attribute, so a 2-habit and a 4-habit attribute take equally long.
-   With every habit done daily: Lv2 ~2 weeks, Lv3 ~6 weeks, Lv4 ~3 months, Lv5 ~6 months. */
-const ATTR_MAX = 5, ATTR_STEPS = [0, 0, 150, 500, 1100, 2100];              /* total XP needed to reach level l */
+/* Attributes: 5 levels max. Total XP to reach each level: Lv2 80, Lv3 240, Lv4 480, Lv5 800
+   (each step needs 80 more than the last: 80, 160, 240, 320). */
+const ATTR_MAX = 5, ATTR_STEPS = [0, 0, 80, 240, 480, 800];              /* total XP needed to reach level l */
 const streakBonus = run => Math.min(10, 2*Math.floor((run-1)/7));   /* +2 XP per full week of streak, max +10 */
 const comboBonus = c => Math.min(100, XP_PERFECT + 10*(c-1));      /* perfect-day combo: 50, 60, 70 ... max 100 */
 function attrOfHabit(){ const R=hRef(), m={}; ATTRS.forEach(a=>a.keys.forEach(k=>{ if(R[k]) m[R[k].id]=a.k; })); return id=>m[id]||'VIT'; }
@@ -1991,8 +1991,7 @@ function gameState(){
   let slain=0; months.forEach(k=>{ const [y,mo]=k.split('-').map(Number); const b=bossFor(new Date(y,mo,1)); if(b.defeatedOn){ slain++; br.boss+=XP_BOSS; } });
   const xp=Object.values(br).reduce((s,v)=>s+v,0);
   let lvl=1; while(xp >= xpFor(lvl+1)) lvl++;
-  const nIn={}; H.habits.filter(h=>!h.archived).forEach(h=>{ const k=attrOf(h.id); nIn[k]=(nIn[k]||0)+1; });
-  const attrs=ATTRS.map(a=>{ const x=attrXP[a.k], n=Math.max(1,nIn[a.k]||0), need=l=>ATTR_STEPS[l]*n; let l=1; while(l<ATTR_MAX && x>=need(l+1)) l++;
+  const attrs=ATTRS.map(a=>{ const x=attrXP[a.k], need=l=>ATTR_STEPS[l]; let l=1; while(l<ATTR_MAX && x>=need(l+1)) l++;
     const max=l>=ATTR_MAX; return {...a, xp:x, lvl:l, max, floor:need(l), ceil:max?need(l):need(l+1)}; });
   return {xp, lvl, floor:xpFor(lvl), ceil:xpFor(lvl+1), slain, title:lvlTitle(lvl), rank:rankOf(lvl), br, attrs, perDay, log, combo, bestCombo, questsDone, activeDays, perfectDays, todayXP:perDay[dkey(today)]||0};
 }
@@ -2063,7 +2062,7 @@ function questView(){
       <p><b>Habits:</b> ${XP_CHECK} XP each. Keeping a habit going adds a <b>streak bonus</b> of +2 XP for every full week in a row, up to +10.</p>
       <p><b>Perfect days</b> give ${XP_PERFECT} XP. Chaining them builds a <b>combo</b>: the 2nd perfect day in a row gives 60, the 3rd 70, up to 100.</p>
       <p><b>Quests:</b> daily quests give 20–80 XP, weekly quests 120–200 XP. <b>Bosses</b> give ${XP_BOSS} XP when slain.</p>
-      <p><b>Attributes</b> grow from the habits behind them: Strength (workout, stretch), Intellect (reading, The Economist, chess), Discipline (no dark, screen limits), Vitality (sleep, wake-up, hygiene, cooking) and Order (bed, room). New habits count towards Vitality. Each attribute goes up to <b>level 5</b>. The XP needed scales with how many habits feed it, so every attribute takes about the same time: doing all its habits daily gets you to level 2 in ~2 weeks, level 3 in ~6 weeks, level 4 in ~3 months and level 5 in ~6 months.</p>
+      <p><b>Attributes</b> grow from the habits behind them: Strength (workout, stretch), Intellect (reading, The Economist, chess), Discipline (no dark, screen limits), Vitality (sleep, wake-up, hygiene, cooking) and Order (bed, room). New habits count towards Vitality. Each attribute goes up to <b>level 5</b>: 80 XP for level 2, then 160, 240 and 320 more for levels 3, 4 and 5 (800 XP in total).</p>
       <p><b>Levels:</b> level 2 needs 100 XP, then each level needs 100 XP more than the last (level 10: 4,500 XP, level 20: 19,000 XP). Every 5 levels you reach a new <b>rank</b> and your helmet gets new trim, plumes and a glow.</p>
       <p><b>Boss:</b> each habit hits it for ${XP_CHECK}, a perfect day for ${XP_PERFECT}. About 70% of your habits over the month beats it. It heals ${BOSS_HEAL} HP on days you do less than half.</p>
     </details>`;
