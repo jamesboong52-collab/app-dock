@@ -4127,6 +4127,10 @@ const EXP_BUILD = [
 ];
 const EXP_COLORS = ['#E8A33C','#D2533A','#4C7BD9','#8C5BD1','#2E9E6A','#D99A1E','#C9D1D9'];
 const EXP_OMENS = [ {k:'calm', n:'Calm', d:'Checks 1 easier', dc:-1, loot:0}, {k:'rich', n:'Rich', d:'+1 loot if you finish', dc:0, loot:1}, {k:'wild', n:'Wild', d:'Checks 1 harder, +2 loot if you finish', dc:1, loot:2} ];
+/* One-off: the owner asked to try it on 6 Oct 2026 after 22:00. Open until 03:00 that night; the run counts as 6 Oct. */
+const EXP_EXTRA = { day:'2026-10-06', from:new Date(2026,9,6,0,0), until:new Date(2026,9,7,3,0) };
+const expExtraNow = () => { const n=new Date(); return n>=EXP_EXTRA.from && n<EXP_EXTRA.until; };
+const expToday = () => expExtraNow() ? EXP_EXTRA.day : dkey(new Date());
 const expAnytime = () => { try{ return localStorage.getItem('dock-exp-anytime')==='1'; }catch(e){ return false; } };
 
 function expNew(){ return { v:1, campaign:1, campStart:null, seed:Math.random().toString(36).slice(2), name:'', color:'#E8A33C', frag:{}, won:{}, flags:{}, fed:0, gift:0, mats:{}, lore:[], seen:[], journal:[], stars:{}, built:['campfire'], days:0, run:null, last:null, ret:null, trophies:[], entered:[], recent:[], ascend:false }; }
@@ -4147,7 +4151,7 @@ const expGateOk = (n, lv) => { const g=expR(n)?.gate; if(!g) return true; if(g.A
 const expGateText = g => !g ? '' : g.ALL ? `All stats ${g.ALL}+` : Object.entries(g).map(([k,v])=>`${k} ${v}+`).join(', ');
 const expCur = () => { for(let n=1;n<=6;n++) if(!EXP.st.won[n]) return n; return 6; };
 function expWindow(){ const now=new Date(), h=now.getHours();
-  if(expAnytime()) return {open:true};
+  if(expAnytime() || expExtraNow()) return {open:true};
   if(h>=17 && h<22) return {open:true, closes:new Date(now.getFullYear(),now.getMonth(),now.getDate(),22)};
   const next=new Date(now.getFullYear(),now.getMonth(),now.getDate()+(h>=22?1:0),17); return {open:false, next}; }
 function expOmens(day, n){ const rnd=expRng(EXP.st.seed+'|omen|'+day+'|'+n); const o=expShuffle(EXP_OMENS,rnd); const r=expR(n); const m={}; r.sites.forEach((s,i)=>m[s.id]=o[i]); return m; }
@@ -4159,7 +4163,7 @@ function expReqOk(e, n){ const q=e.req; if(!q) return true; const st=EXP.st;
 
 /* ---------- starting a run ---------- */
 function expStart(n, siteId){
-  const st=EXP.st, r=expR(n), day=dkey(new Date()), lv=expLevels(), boost=expBoost(day), cur=expCur();
+  const st=EXP.st, r=expR(n), day=expToday(), lv=expLevels(), boost=expBoost(day), cur=expCur();
   const finale = siteId==='finale', replay = !!st.won[n] || n!==cur || !expGateOk(n,lv);
   const rnd=expRng(st.seed+'|run|'+day+'|'+n+'|'+siteId);
   const ordBonus = rnd() < lv.ORD*0.05 ? 1 : 0;
@@ -4360,7 +4364,7 @@ function expView(){
   return `<div class="exp">${expNav()}${body}</div>`;
 }
 function expCampView(){
-  const st=EXP.st, lv=expLevels(), day=dkey(new Date()), boost=expBoost(day), w=expWindow(), cur=expCur();
+  const st=EXP.st, lv=expLevels(), day=expToday(), boost=expBoost(day), w=expWindow(), cur=expCur();
   const doneToday = st.last===day;
   const head = `<div class="xcamp"><div>${expTower(st.won)}</div><div class="xcamphead"><span class="label">Last Light · Campaign ${st.campaign}</span>
     <b class="xname">${EXP.nameEdit||!st.name?`<form id="xname"><input id="xname-in" maxlength="24" placeholder="Name your Wanderer" value="${escH(st.name)}"><button class="addbtn sm">Save</button></form>`:`${escH(st.name)} <button class="x" data-xrename="1">Rename</button>`}</b>
@@ -4479,8 +4483,8 @@ function expAscendView(){ const lv=expLevels(); const stars=EXP_STATS.filter(k=>
     <button class="addbtn" data-xascend="1">Ascend</button></div>`; }
 function expCard(){
   if(!EXP.st) return '';
-  const st=EXP.st, day=dkey(new Date()), w=expWindow(), cur=expCur();
-  const line = st.ascend ? 'Your campaign is complete. Ascension awaits.' : st.run ? 'An expedition is under way. Pick up where you left off.' : st.last===day ? 'Back home for tonight. Next expedition tomorrow at 17:00.' : w.open ? `The road is open until 22:00 · ${escH(expR(cur).name)} ${st.frag[cur]||0}/12` : 'Opens tonight at 17:00.';
+  const st=EXP.st, day=expToday(), w=expWindow(), cur=expCur();
+  const line = st.ascend ? 'Your campaign is complete. Ascension awaits.' : st.run ? 'An expedition is under way. Pick up where you left off.' : st.last===day ? 'Back home for tonight. Next expedition tomorrow at 17:00.' : w.open ? `${expExtraNow()&&!w.closes?'Open tonight as a one-off':'The road is open until 22:00'} · ${escH(expR(cur).name)} ${st.frag[cur]||0}/12` : 'Opens tonight at 17:00.';
   return `<button class="xentry ${w.open&&st.last!==day||st.run?'live':''}" data-xopen="1">${expTower(st.won,true)}<span><span class="label">Expeditions</span><b>Last Light</b><small>${line}</small></span><span class="go" aria-hidden="true">→</span></button>`;
 }
 function expAnimate(){
