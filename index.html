@@ -455,10 +455,11 @@ body[data-app="habits"]{--bg:#F6EEE3;--surface:#FFFBF5;--sunk:#EEE2D2;--line:#E3
 .xpline.tot{border-top:2px solid var(--line);border-bottom:0;font-weight:700}
 .xpline.tot b{font-size:16px}
 .xpdays{display:grid;grid-template-columns:repeat(14,minmax(0,1fr));gap:4px;align-items:end;height:140px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 10px 8px}
-.xpd{height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:3px;min-width:0}
-.xpd i{display:block;width:100%;max-width:18px;border-radius:4px 4px 1px 1px;background:color-mix(in srgb,var(--c-hab) 55%,var(--surface))}
+.xpd{height:100%;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
+.xpd .trk{flex:1;position:relative;width:100%;margin-top:14px}
+.xpd i{position:absolute;bottom:0;left:50%;transform:translateX(-50%);height:max(2px,var(--h));width:100%;max-width:18px;border-radius:4px 4px 1px 1px;background:color-mix(in srgb,var(--c-hab) 55%,var(--surface))}
 .xpd.now i{background:var(--c-hab)}
-.xpv{font:600 9px var(--mono);color:var(--muted)}
+.xpv{position:absolute;left:50%;bottom:calc(var(--h) + 3px);transform:translateX(-50%);font:600 9px var(--mono);color:var(--muted);white-space:nowrap}
 .xpd small{font:600 10px var(--mono);color:var(--muted)}
 .xpsrc{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
 .xpsrc .stack{display:flex;height:12px;border-radius:6px;overflow:hidden;gap:2px;margin-bottom:6px;background:var(--sunk)}
@@ -2040,7 +2041,7 @@ function questView(){
     <div class="xplog">${g.log.length?g.log.map(e=>`<div class="xpline ${e.special?'sp':''}"><span>${escH(e.t)}${e.note?`<small>${escH(e.note)}</small>`:''}</span><b>+${e.xp}</b></div>`).join('')+`<div class="xpline tot"><span>Total today</span><b>+${g.todayXP} XP</b></div>`:'<p class="note" style="margin:0">Tick a habit to earn your first XP today.</p>'}</div>
 
     <h3 class="sh">Last 14 days</h3>
-    <div class="xpdays">${days14.map(d=>{ const v=g.perDay[dkey(d)]||0; return `<div class="xpd ${dkey(d)===dkey(today)?'now':''}" title="${d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}: ${v} XP"><span class="xpv">${v||''}</span><i style="height:${Math.max(2,v/mx*100)}%"></i><small>${d.toLocaleDateString('en-GB',{weekday:'narrow'})}</small></div>`; }).join('')}</div>
+    <div class="xpdays">${days14.map(d=>{ const v=g.perDay[dkey(d)]||0; return `<div class="xpd ${dkey(d)===dkey(today)?'now':''}" title="${d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}: ${v} XP"><span class="trk" style="--h:${v?Math.max(2,v/mx*100):0}%">${v?`<span class="xpv">${v}</span>`:''}<i></i></span><small>${d.toLocaleDateString('en-GB',{weekday:'narrow'})}</small></div>`; }).join('')}</div>
 
     <h3 class="sh">Where your XP comes from</h3>
     <div class="xpsrc"><div class="stack">${src.filter(s=>s[1]).map(s=>`<i style="flex:${s[1]};background:${s[2]}" title="${s[0]}: ${s[1]} XP"></i>`).join('')}</div>
