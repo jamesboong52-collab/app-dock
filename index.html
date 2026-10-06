@@ -3364,13 +3364,13 @@ const ATTRS = [
 ];
 const xpFor = l => 50*(l-1)*l;
 /* Attributes (also the hero's stats in Expeditions): levels 1-10.
-   XP per step 80, 90, 100, 120, 150, 180, 210, 250, 290 -> total 1,470 XP for Lv 10.
+   XP per step 75, 85, 100, 120, 145, 175, 210, 245, 285 -> total 1,440 XP for Lv 10.
    Habit XP is normalised: each attribute earns at most ATTR_DAY XP a day from its habits, split evenly
    across them, so a 2-habit and a 4-habit attribute grow at the same pace. Quests add a little on top
    (+1 to every attribute per daily quest, +3 per weekly quest). A fully consistent attribute reaches
    Lv 10 in ~75-80 days; ~70% consistency lands around Lv 8 by the end of a 3-month campaign.
    Only days since the current Expeditions campaign started count (Ascension resets levels, never habits). */
-const ATTR_MAX = 10, ATTR_STEPS = [0, 0, 80, 170, 270, 390, 540, 720, 930, 1180, 1470], ATTR_DAY = 15, ATTR_DQ = 1, ATTR_WQ = 3;              /* total XP needed to reach level l */
+const ATTR_MAX = 10, ATTR_STEPS = [0, 0, 75, 160, 260, 380, 525, 700, 910, 1155, 1440], ATTR_DAY = 15, ATTR_DQ = 1, ATTR_WQ = 3;              /* total XP needed to reach level l */
 const streakBonus = run => Math.min(10, 2*Math.floor((run-1)/7));   /* +2 XP per full week of streak, max +10 */
 const comboBonus = c => Math.min(100, XP_PERFECT + 10*(c-1));      /* perfect-day combo: 50, 60, 70 ... max 100 */
 function attrOfHabit(){ const R=hRef(), m={}; ATTRS.forEach(a=>a.keys.forEach(k=>{ if(R[k]) m[R[k].id]=a.k; })); return id=>m[id]||'VIT'; }
@@ -3435,7 +3435,7 @@ function questView(){
 
     <h3 class="sh">Attributes</h3>
     <div class="attrs">${radar(g.attrs)}
-      <div class="attrlist">${g.attrs.map(a=>`<div class="attr"><span class="adot" style="background:${a.color}"></span><div><b>${a.name} <small>Lv ${a.lvl}/${ATTR_MAX}</small></b><small>${a.desc}</small><span class="meter"><i style="width:${a.max?100:(a.xp-a.floor)/(a.ceil-a.floor)*100}%;background:${a.color}"></i></span><span class="anext"><span>${a.max?`Max level · ${a.xp.toLocaleString('en-GB')} XP`:`${(a.xp-a.floor).toLocaleString('en-GB')} / ${(a.ceil-a.floor).toLocaleString('en-GB')} XP`}</span></span></div></div>`).join('')}</div>
+      <div class="attrlist">${g.attrs.map(a=>`<div class="attr"><span class="adot" style="background:${a.color}"></span><div><b>${a.name} <small>Lv ${a.lvl}/${ATTR_MAX}</small></b><small>${a.desc}</small><span class="meter"><i style="width:${a.max?100:(a.xp-a.floor)/(a.ceil-a.floor)*100}%;background:${a.color}"></i></span><span class="anext"><span>${a.max?`Max level · ${(Math.round(a.xp/10)*10).toLocaleString('en-GB')} XP`:`${(Math.round((a.xp-a.floor)/10)*10).toLocaleString('en-GB')} / ${(a.ceil-a.floor).toLocaleString('en-GB')} XP`}</span></span></div></div>`).join('')}</div>
     </div>
 
     ${expCard()}
@@ -3472,7 +3472,7 @@ function questView(){
       <p><b>Habits:</b> ${XP_CHECK} XP each. Keeping a habit going adds a <b>streak bonus</b> of +2 XP for every full week in a row, up to +10.</p>
       <p><b>Perfect days</b> give ${XP_PERFECT} XP. Chaining them builds a <b>combo</b>: the 2nd perfect day in a row gives 60, the 3rd 70, up to 100.</p>
       <p><b>Quests:</b> daily quests give 20–80 XP, weekly quests 120–200 XP. <b>Bosses</b> give ${XP_BOSS} XP when slain.</p>
-      <p><b>Attributes</b> grow from the habits behind them: Strength (workout, stretch), Intellect (reading, The Economist, chess), Discipline (no dark, screen limits), Vitality (sleep, wake-up, hygiene, cooking) and Order (bed, room). New habits count towards Vitality. Attributes go from <b>level 1 to 10</b> (80 XP for level 2, a bit more each level, 1,470 XP for level 10) and are your hero's stats in <b>Expeditions</b>. Each attribute can earn up to 15 XP a day from its habits, shared evenly between them, plus +1 for every daily quest and +3 for every weekly quest. Done every day, an attribute reaches level 10 in about 11 weeks.</p>
+      <p><b>Attributes</b> grow from the habits behind them: Strength (workout, stretch), Intellect (reading, The Economist, chess), Discipline (no dark, screen limits), Vitality (sleep, wake-up, hygiene, cooking) and Order (bed, room). New habits count towards Vitality. Attributes go from <b>level 1 to 10</b> (75 XP for level 2, a bit more each level, 1,440 XP for level 10) and are your hero's stats in <b>Expeditions</b>. Each attribute can earn up to 15 XP a day from its habits, shared evenly between them, plus +1 for every daily quest and +3 for every weekly quest. Done every day, an attribute reaches level 10 in about 11 weeks.</p>
       <p><b>Levels:</b> level 2 needs 100 XP, then each level needs 100 XP more than the last (level 10: 4,500 XP, level 20: 19,000 XP). Every 5 levels you reach a new <b>rank</b> and your helmet gets new trim, plumes and a glow.</p>
       <p><b>Boss:</b> each habit hits it for ${XP_CHECK}, a perfect day for ${XP_PERFECT}. About 70% of your habits over the month beats it. It heals ${BOSS_HEAL} HP on days you do less than half.</p>
     </details>`;
