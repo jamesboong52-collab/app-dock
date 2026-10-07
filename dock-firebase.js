@@ -84,7 +84,7 @@
   }
 
   /* ---------- restore a backup (replaces everything in the account) ---------- */
-  const COLS = ['todos','habits','habitDays','goals','wishlist','events','shelf','settings','game','items','outfits'];
+  const COLS = ['todos','habits','habitDays','goals','wishlist','events','shelf','settings','items','outfits'];
   async function importBackup(data, say = () => {}){
     if(!DB) throw new Error('Sign in first.');
     const cols = data.collections || {};
