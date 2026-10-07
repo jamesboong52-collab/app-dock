@@ -223,6 +223,23 @@ button.day i::after{content:"";position:absolute;inset:0;width:calc(var(--p)*100
 .gs{font:500 11px var(--mono);white-space:nowrap;color:var(--muted);padding:4px 8px;border-radius:999px;background:var(--sunk)}
 .gs.ok{color:var(--surface);background:var(--c-hab)}
 .gs.miss{color:#D64545}
+.gspeed{margin:8px 0 0;font:600 12.5px var(--mono);color:var(--c-hab)}
+.garch{display:flex;flex-direction:column;gap:8px;margin-top:12px;padding-top:12px;border-top:1px dashed var(--line)}
+.garch input,.gfbody input{flex:1;min-width:0;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:9px;padding:8px 10px;font:500 14px var(--body)}
+.gfolders{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.gfold{background:var(--surface);border-radius:14px;overflow:hidden}
+.gfhead{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;width:100%;border:0;background:none;padding:13px 14px;text-align:left;color:var(--ink);font:inherit}
+.gfhead b{font:700 15px var(--display)}
+.gfhead small{font:500 11.5px var(--mono);color:var(--muted);margin-left:auto}
+.gficon{color:var(--c-hab);width:12px}
+.gfbody{display:flex;flex-direction:column;gap:8px;padding:0 14px 14px}
+.gfbody>.x{align-self:flex-start}
+.garow{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;border-top:1px solid var(--line);padding-top:10px}
+.garow>div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.garow b{font-size:14.5px;overflow-wrap:anywhere}
+.garow small{font-size:12px;color:var(--muted)}
+.gaok{font:600 12px var(--mono);color:var(--c-hab)}
+.gamiss{font:600 12px var(--mono);color:#D64545}
 .gnums{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;margin-top:10px}
 .gnums b{font:700 26px var(--display);font-variant-numeric:tabular-nums}
 .gnums small{flex-basis:100%;font-size:12px;color:var(--muted)}
@@ -4308,6 +4325,13 @@ const endOfPeriod = p => { const n=atMidnight(new Date()); if(p==='week') return
 const daysLeft = due => Math.round((atMidnight(new Date(due)) - atMidnight(new Date()))/86400000);
 const gProgress = g => g.type==='check' ? (g.done?1:0) : Math.max(0, Math.min(1, (g.current-g.start)/((g.target-g.start)||1)));
 const gReached = g => g.type==='check' ? !!g.done : (g.target>=g.start ? g.current>=g.target : g.current<=g.target);
+/* when a goal was first reached (ms), from its history or its done time */
+function gReachedAt(g){ if(!gReached(g)) return null;
+  if(g.type==='check') return g.doneAt||null;
+  const up=g.target>=g.start, hit=(g.history||[]).find(h=>up ? h.v>=g.target : h.v<=g.target); return hit?hit.t:null; }
+function gSpeed(g){ const at=gReachedAt(g); if(!at) return null;
+  const days=Math.max(0,Math.round((atMidnight(new Date(at))-atMidnight(new Date(g.created)))/DAY)), early=Math.round((atMidnight(new Date(g.due))-atMidnight(new Date(at)))/DAY);
+  return { days, early, text:`Reached in ${days===0?'under a day':days===1?'1 day':days+' days'}${early>0?` · ${early} ${early===1?'day':'days'} early`:early===0?' · on the last day':''}` }; }
 const num = n => (+n).toLocaleString('de-DE',{maximumFractionDigits:2, useGrouping:false});
 
 /* views */
@@ -4949,15 +4973,17 @@ function goalCard(g){
     <div class="gtop"><div><span class="label">${g.period==='week'?'Weekly':'Monthly'} goal · until ${fmtDay(new Date(g.due),{day:'numeric',month:'short'})}</span><b>${escH(g.title)}</b></div>${status}</div>
     ${g.type==='number'?`<div class="gnums"><b>${num(g.current)}</b><span>/ ${num(g.target)} ${escH(g.unit||'')}</span><small>${ok?'Target reached':`${num(Math.abs(g.target-g.current))} to go · started at ${num(g.start)}`}</small></div>`:''}
     <div class="meter big"><i style="width:${p*100}%"></i></div>
+    ${ok&&gSpeed(g)?`<p class="gspeed">⏱ ${gSpeed(g).text}</p>`:''}
     ${g.type==='number'?sparkline(g):''}
     <div class="gact">${g.type==='number'
       ?`<form class="gupd" data-gupd="${g.id}"><input inputmode="decimal" placeholder="New value" aria-label="New value for ${escH(g.title)}"><button class="wbtn">Update</button></form>`
       :`<button class="wbtn" data-gdone="${g.id}">${g.done?'Mark as not done':'Mark as done'}</button>`}
-      ${past||ok?`<button class="x" data-gagain="${g.id}">Set again for next ${g.period}</button>`:''}<button class="x" data-gdel="${g.id}">Delete</button></div>
+      ${past||ok?`<button class="x" data-gagain="${g.id}">Set again for next ${g.period}</button>`:''}${past||ok?`<button class="x" data-garch="${g.id}">Archive</button>`:''}<button class="x" data-gdel="${g.id}">Delete</button></div>
+    ${H.gArch===g.id?gArchivePicker(g):''}
   </article>`;
 }
 function goalsView(){
-  const cur=H.goals.filter(g=>daysLeft(g.due)>=0).sort((a,b)=>a.due-b.due), old=H.goals.filter(g=>daysLeft(g.due)<0).sort((a,b)=>b.due-a.due);
+  const live=H.goals.filter(g=>!g.folder), cur=live.filter(g=>daysLeft(g.due)>=0).sort((a,b)=>a.due-b.due), old=live.filter(g=>daysLeft(g.due)<0).sort((a,b)=>b.due-a.due);
   return `<button class="addbtn" style="background:var(--c-hab);margin-top:14px" data-gform="1">${H.gForm?'Close':'+ New goal'}</button>
     ${H.gForm?`<form id="gform" class="gform" autocomplete="off">
       <input id="g-title" placeholder="Goal, e.g. Reach 2350 Elo on Lichess" maxlength="100" required aria-label="Goal">
@@ -4967,8 +4993,22 @@ function goalsView(){
       <p class="note" id="g-err" style="color:#D64545"></p><button class="addbtn" style="background:var(--c-hab)">Save goal</button></form>`:''}
     ${cur.length?`<div class="glist">${cur.map(goalCard).join('')}</div>`:`<div class="empty"><b>No goals for this week or month</b>Set a target you want to hit, like a rating, a number of workouts or pages read.
       <div class="examples"><button class="sugg" data-gsugg="1">+ Reach 2350 Elo on Lichess this month</button></div></div>`}
-    ${old.length?`<h3 class="sh">Past goals</h3><div class="glist">${old.map(goalCard).join('')}</div>`:''}`;
+    ${old.length?`<h3 class="sh">Past goals</h3><div class="glist">${old.map(goalCard).join('')}</div>`:''}
+    ${gArchiveView()}`;
 }
+/* ---------- goal archive: folders you name yourself ---------- */
+const gFolders = () => [...new Set(H.goals.filter(g=>g.folder).map(g=>g.folder))].sort((a,b)=>a.localeCompare(b));
+function gArchivePicker(g){ const fs=gFolders();
+  return `<form class="garch" data-garchform="${g.id}" autocomplete="off"><span class="label">Archive into a folder</span>
+    ${fs.length?`<div class="shrow">${fs.map(f=>`<button type="button" class="shpill" data-gto="${escH(f)}" data-gid="${g.id}">${escH(f)}</button>`).join('')}</div>`:''}
+    <div class="wrow"><input id="garch-new" maxlength="40" placeholder="${fs.length?'Or a new folder name':'Folder name, e.g. Chess'}" aria-label="New folder name"><button class="wbtn">${fs.length?'Create & archive':'Archive'}</button><button type="button" class="x" data-garch="${g.id}">Cancel</button></div></form>`; }
+function gArchiveView(){ const fs=gFolders(); if(!fs.length) return '';
+  return `<h3 class="sh">Archive</h3><div class="gfolders">${fs.map(f=>{ const gs=H.goals.filter(g=>g.folder===f).sort((a,b)=>(gReachedAt(b)||b.due)-(gReachedAt(a)||a.due)), hit=gs.filter(gReached).length, open=H.gOpen===f;
+    const sp=gs.map(gSpeed).filter(Boolean), avg=sp.length?Math.round(sp.reduce((t,x)=>t+x.days,0)/sp.length):null;
+    return `<div class="gfold ${open?'open':''}"><button class="gfhead" data-gopen="${escH(f)}"><span class="gficon" aria-hidden="true">${open?'▾':'▸'}</span><b>${escH(f)}</b><small>${gs.length} ${gs.length===1?'goal':'goals'} · ${hit} reached${avg!=null?` · avg ${avg} ${avg===1?'day':'days'}`:''}</small></button>
+      ${open?`<div class="gfbody">${H.gRen===f?`<form class="wrow" data-gren="${escH(f)}"><input id="gren-in" maxlength="40" value="${escH(f)}" aria-label="Folder name"><button class="wbtn">Rename</button><button type="button" class="x" data-grenx="1">Cancel</button></form>`:`<button class="x" data-grenstart="${escH(f)}">Rename folder</button>`}
+        ${gs.map(g=>{ const sp=gSpeed(g), ok=gReached(g); return `<div class="garow"><div><b>${escH(g.title)}</b><small>${g.period==='week'?'Weekly':'Monthly'} · ${fmtDay(new Date(g.created),{day:'numeric',month:'short'})} – ${fmtDay(new Date(g.due),{day:'numeric',month:'short',year:'numeric'})}${g.type==='number'?` · ${num(g.current)} / ${num(g.target)} ${escH(g.unit||'')}`:''}</small>
+          <span class="${ok?'gaok':'gamiss'}">${ok?(sp?'✓ '+sp.text:'✓ Reached'):'Not reached'}</span></div><button class="x" data-gunarch="${g.id}">Restore</button></div>`; }).join('')}</div>`:''}</div>`; }).join('')}</div>`; }
 
 /* events */
 const gf = { period:'week', type:'number' };
@@ -5001,7 +5041,13 @@ document.addEventListener('click', async e=>{
   else if(b.dataset.gtype){ gf.type=b.dataset.gtype; document.querySelectorAll('[data-gtype]').forEach(x=>x.setAttribute('aria-pressed',String(x===b))); document.getElementById('g-nums').hidden = gf.type!=='number'; }
   else if(b.dataset.gsugg){ H.gForm=true; gf.period='month'; gf.type='number'; drawHabits(); document.getElementById('g-title').value='Reach 2350 Elo on Lichess'; document.getElementById('g-target').value='2350'; document.getElementById('g-unit').value='Elo';
     document.querySelectorAll('[data-gper]').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.gper==='month'))); document.getElementById('g-start').focus(); }
-  else if(b.dataset.gdone){ const g=gfind(b.dataset.gdone); if(g){ const was=gReached(g), will=!g.done; gUpdate(g,{done:will}); if(!was && will){ confettiBurst(); dockToast(`Goal reached: ${g.title}`); } } }
+  else if(b.dataset.gdone){ const g=gfind(b.dataset.gdone); if(g){ const was=gReached(g), will=!g.done; gUpdate(g,{done:will, doneAt:will?Date.now():null}); if(!was && will){ confettiBurst(); dockToast(`Goal reached: ${g.title}`); } } }
+  else if(b.dataset.garch){ H.gArch = H.gArch===b.dataset.garch ? null : b.dataset.garch; drawHabits(); document.getElementById('garch-new')?.focus(); }
+  else if(b.dataset.gto){ const g=gfind(b.dataset.gid); if(g){ H.gArch=null; gUpdate(g,{folder:b.dataset.gto, archivedAt:Date.now()}); dockToast(`Archived in ${b.dataset.gto}`); } }
+  else if(b.dataset.gunarch){ const g=gfind(b.dataset.gunarch); if(g) gUpdate(g,{folder:null}); }
+  else if(b.dataset.gopen){ H.gOpen = H.gOpen===b.dataset.gopen ? null : b.dataset.gopen; H.gRen=null; drawHabits(); }
+  else if(b.dataset.grenstart){ H.gRen=b.dataset.grenstart; drawHabits(); document.getElementById('gren-in')?.select(); }
+  else if(b.dataset.grenx){ H.gRen=null; drawHabits(); }
   else if(b.dataset.gdel){ if(!b.dataset.armed){ b.dataset.armed='1'; b.textContent='Confirm'; return; } const g=gfind(b.dataset.gdel); if(g) gDelete(g); }
   else if(b.dataset.gagain){ const g=gfind(b.dataset.gagain); if(!g) return; const now=Date.now();
     gAdd({title:g.title, period:g.period, type:g.type, start:g.current??0, current:g.current??0, target:g.target??null, unit:g.unit||'', history:g.type==='number'?[{t:now,v:g.current}]:[], done:false, created:now, due:endOfPeriod(g.period).getTime()}); }
@@ -5018,6 +5064,8 @@ document.addEventListener('submit', async e=>{
     if(gf.type==='number' && (start==null || target==null)){ document.getElementById('g-err').textContent='Enter where you are now and your target.'; return; }
     await gAdd({title, period:gf.period, type:gf.type, start:start??0, current:start??0, target, unit:document.getElementById('g-unit').value.trim(), history:gf.type==='number'?[{t:now,v:start}]:[], done:false, created:now, due:endOfPeriod(gf.period).getTime()});
     H.gForm=false; drawHabits(); }
+  else if(f.dataset.garchform){ e.preventDefault(); const g=H.goals.find(x=>x.id===f.dataset.garchform), name=(document.getElementById('garch-new')?.value||'').trim().slice(0,40); if(!g||!name) return; H.gArch=null; H.gOpen=name; await gUpdate(g,{folder:name, archivedAt:Date.now()}); dockToast(`Archived in ${name}`); }
+  else if(f.dataset.gren){ e.preventDefault(); const from=f.dataset.gren, to=(document.getElementById('gren-in')?.value||'').trim().slice(0,40); H.gRen=null; if(!to||to===from){ drawHabits(); return; } H.gOpen=to; for(const g of H.goals.filter(x=>x.folder===from)) await gUpdate(g,{folder:to}); }
   else if(f.dataset.gupd){ e.preventDefault(); const g=H.goals.find(x=>x.id===f.dataset.gupd); const raw=f.querySelector('input').value; const v=parseFloat(raw.replace(',','.')); if(!g||isNaN(v)) return;
     const was=gReached(g);
     gUpdate(g,{current:v, history:[...(g.history||[]), {t:Date.now(), v}].slice(-200)});
